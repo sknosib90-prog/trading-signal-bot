@@ -1,1 +1,2 @@
-# trading-signal-bot
+pyTelegramBotAPI
+pytz
