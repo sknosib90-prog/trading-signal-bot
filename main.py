@@ -1,91 +1,97 @@
 import streamlit as st
 import google.generativeai as genai
-import openai
 from PIL import Image
 
-# --- API Configuration (আপনার দেওয়া কি-গুলো এখানে বসানো হয়েছে) ---
-GEMINI_API_KEY = "AIzaSyDTUBP0y998XnIOCN9b-Q25AIJkyS6MZ3E"
-OPENAI_API_KEY = "sk-..." # এখানে আপনার OpenAI কি-টি বসিয়ে নিন
+# API কনফিগারেশন
+API_KEY = "AIzaSyDTUBP0y998XnIOCN9b-Q25AIJkyS6MZ3E"
+genai.configure(api_key=API_KEY)
+model = genai.GenerativeModel('gemini-1.5-pro')
 
-genai.configure(api_key=GEMINI_API_KEY)
-openai.api_key = OPENAI_API_KEY
+# পেজ সেটআপ
+st.set_page_config(page_title="NOSIB TRADER - HYBRID AI", layout="wide")
 
-# --- Page Config ---
-st.set_page_config(page_title="NOSIB TRADER VIP", layout="wide")
-
-# --- Custom CSS for Advanced Look ---
+# প্রফেশনাল ডার্ক থিম ডিজাইন
 st.markdown("""
     <style>
-    .main { background-color: #0b0e14; color: white; }
-    .stSelectbox div[data-baseweb="select"] { background-color: #161b22; color: white; border: 1px solid #00d2ff; }
-    .market-header { background: linear-gradient(90deg, #00d2ff 0%, #3a7bd5 100%); padding: 20px; border-radius: 10px; text-align: center; font-size: 35px; font-weight: bold; margin-bottom: 20px; }
-    .signal-box { background: #1c2128; border: 2px solid #00d2ff; padding: 25px; border-radius: 15px; box-shadow: 0px 4px 20px rgba(0,210,255,0.3); }
+    .main { background-color: #060d17; color: white; }
+    .stButton>button { width: 100%; border-radius: 10px; background: linear-gradient(90deg, #00c6ff, #0072ff); color: white; border: none; height: 55px; font-weight: bold; font-size: 18px; }
+    .nosib-header { background: #111b27; padding: 25px; border-radius: 15px; border-bottom: 4px solid #0072ff; text-align: center; margin-bottom: 20px; }
+    .signal-box { background: #162431; padding: 25px; border-radius: 15px; border: 1px solid #2e3b4e; box-shadow: 0px 10px 30px rgba(0,0,0,0.5); }
     </style>
     """, unsafe_allow_html=True)
 
-# --- Password Lock ---
-if "login" not in st.session_state:
-    st.session_state.login = False
+# লগইন সুরক্ষা
+if "auth" not in st.session_state:
+    st.session_state.auth = False
 
-if not st.session_state.login:
-    st.markdown('<div class="market-header">NOSIB TRADER VIP LOGIN</div>', unsafe_allow_html=True)
-    pwd = st.text_input("Enter Passkey:", type="password")
-    if st.button("Access Dashboard"):
-        if pwd == "NR77":
-            st.session_state.login = True
-            st.rerun()
+if not st.session_state.auth:
+    st.markdown('<div class="nosib-header"><h1 style="color:#00c6ff;">NOSIB TRADER VIP LOGIN</h1></div>', unsafe_allow_html=True)
+    cols = st.columns([1,2,1])
+    with cols[1]:
+        pwd = st.text_input("Enter VIP Access Key:", type="password")
+        if st.button("UNLOCK BOT"):
+            if pwd == "NR77":
+                st.session_state.auth = True
+                st.rerun()
     st.stop()
 
-# --- Professional Dashboard ---
-st.markdown('<div class="market-header">NOSIB TRADER HYBRID AI TERMINAL</div>', unsafe_allow_html=True)
+# মেইন ইন্টারফেস
+st.markdown('<div class="nosib-header"><h1 style="color:#00c6ff;">NOSIB TRADER HYBRID AI TERMINAL</h1><p>Status: ✅ PREMIUM ACCESS ACTIVE</p></div>', unsafe_allow_html=True)
 
-# আপনার দেওয়া মার্কেটের তালিকা (Quotex Market List)
-markets = [
-    "EUR/USD (OTC)", "GBP/USD (OTC)", "USD/JPY (OTC)", "AUD/USD (OTC)", 
-    "EUR/GBP (OTC)", "USD/CHF (OTC)", "NZD/USD (OTC)", "USD/CAD (OTC)",
-    "Bitcoin", "Ethereum", "Gold (XAU/USD)", "Silver"
-]
+# আপনার দেওয়া মার্কেটের তালিকা ক্যাটাগরি অনুযায়ী
+currencies = ["USD/IDR (OTC)", "USD/PHP (OTC)", "NZD/USD (OTC)", "USD/PKR (OTC)", "USD/COP (OTC)", "USD/MXN (OTC)", "GBP/NZD (OTC)", "NZD/CHF (OTC)", "EUR/SGD (OTC)", "GBP/JPY", "USD/BRL (OTC)", "EUR/NZD (OTC)", "CAD/JPY", "USD/BDT (OTC)", "USD/INR (OTC)", "CAD/CHF (OTC)", "GBP/USD", "NZD/JPY (OTC)", "USD/ARS (OTC)", "USD/EGP (OTC)", "USD/NGN (OTC)", "USD/TRY (OTC)", "GBP/CAD", "AUD/JPY", "AUD/USD", "EUR/CAD", "CHF/JPY", "USD/ZAR (OTC)", "AUD/NZD (OTC)", "EUR/JPY", "EUR/CHF", "USD/CAD", "USD/CHF"]
+cryptos = ["Arbitrum (OTC)", "Dash (OTC)", "Cardano (OTC)", "Chainlink (OTC)", "Cosmos (OTC)", "Zcash (OTC)", "Floki (OTC)", "Avalanche (OTC)", "Axie Infinity (OTC)", "Bitcoin (OTC)", "Ethereum (OTC)"]
+commodities = ["UKBrent (OTC)", "Silver (OTC)", "USCrude (OTC)", "Gold (OTC)"]
+stocks = ["Intel (OTC)", "Pfizer Inc (OTC)", "Johnson & Johnson (OTC)", "Microsoft (OTC)", "American Express (OTC)", "Boeing Company (OTC)", "FACEBOOK INC (OTC)", "McDonald's (OTC)", "Nikkei 225", "NASDAQ 100", "Dow Jones"]
 
 col1, col2 = st.columns([1, 1.5])
 
 with col1:
-    st.subheader("⚙️ Market Settings")
-    selected_market = st.selectbox("Select Trading Asset:", markets) # মার্কেটের নাম এখানে
-    ai_mode = st.radio("Select AI Engine:", ["Gemini 1.5 PRO", "GPT-4 Hybrid"])
+    st.subheader("⚙️ মার্কেট সিলেকশন")
+    category = st.radio("ক্যাটাগরি বেছে নিন:", ["Currencies", "Crypto", "Commodities", "Stocks/Indices"])
+    
+    if category == "Currencies": market_list = currencies
+    elif category == "Crypto": market_list = cryptos
+    elif category == "Commodities": market_list = commodities
+    else: market_list = stocks
+    
+    selected_asset = st.selectbox("ট্রেডিং পেয়ার বেছে নিন:", market_list)
     
     st.markdown("---")
-    uploaded_file = st.file_uploader("Upload Chart Screenshot", type=["jpg", "png", "jpeg"])
+    uploaded_file = st.file_uploader("চার্ট স্ক্রিনশট আপলোড করুন", type=["jpg", "png", "jpeg"])
     if uploaded_file:
         img = Image.open(uploaded_file)
-        st.image(img, caption=f"Analyzing {selected_market}", use_container_width=True)
+        st.image(img, caption=f"Analyzing {selected_asset}", use_container_width=True)
 
 with col2:
-    st.subheader("📊 Live Analysis & Signals")
+    st.subheader("⚡ AI সিগন্যাল ডিরেকশন")
     if uploaded_file:
-        if st.button("GENERATE AI SIGNAL"):
-            with st.spinner(f"NOSIB TRADER AI is analyzing {selected_market}..."):
+        if st.button("GET DEEP ANALYSIS SIGNAL"):
+            with st.spinner(f"NOSIB AI {selected_asset} এনালাইসিস করছে..."):
                 try:
-                    # মার্কেট এবং এআই ইঞ্জিন ব্যবহার করে এনালাইসিস
-                    prompt = f"Market: {selected_market}. Analyze this candlestick chart and provide a 1-minute signal (CALL/PUT) with logic and success probability in Bengali."
+                    # এআইকে ডিরেকশন দেওয়ার জন্য প্রম্পট
+                    prompt = f"""You are a master trader for NOSIB TRADER. Analyze this {selected_asset} chart carefully. 
+                    Based on indicators, price action, and candles, provide:
+                    1. DIRECTION: (UP/DOWN) in large bold text.
+                    2. ACCURACY: (e.g., 95%)
+                    3. REASON: Logic behind the signal in Bengali.
+                    4. DURATION: 1-minute."""
                     
-                    model = genai.GenerativeModel('gemini-1.5-flash')
                     response = model.generate_content([prompt, img])
                     
                     st.markdown('<div class="signal-box">', unsafe_allow_html=True)
-                    st.markdown(f"### 🎯 Signal for {selected_market}")
+                    st.markdown(f"### 🎯 SIGNAL FOR {selected_asset}")
                     st.write(response.text)
-                    st.markdown("---")
-                    st.info(f"Analysis Powered by {ai_mode}")
                     st.markdown('</div>', unsafe_allow_html=True)
                 except Exception as e:
-                    st.error(f"Error connecting to Market API: {e}")
+                    st.error(f"Error: {e}")
     else:
-        st.warning("Please upload a chart to see professional signals.")
+        st.info("আপনার চার্ট স্ক্রিনশট আপলোড করলে এখানে প্রফেশনাল এনালাইসিস আসবে।")
 
-st.sidebar.markdown(f"### 🛡️ VIP ACCOUNT: NOSIB")
-st.sidebar.write(f"🌐 **Current Market:** {selected_market}")
-st.sidebar.write("⚡ **Latency:** 12ms")
-st.sidebar.write("💎 **Version:** 4.0 Pro")
+st.sidebar.markdown(f"### 🛡️ VIP DASHBOARD: NOSIB")
+st.sidebar.write(f"🌐 **Asset:** {selected_asset}")
+st.sidebar.write("🟢 **Status:** Ready to Analyze")
+
 
 
       
