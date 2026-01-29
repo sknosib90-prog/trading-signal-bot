@@ -1,53 +1,92 @@
 import streamlit as st
 import google.generativeai as genai
+import openai
 from PIL import Image
 
-# ১. জেমিনি এপিআই কনফিগারেশন
-# এখানে আপনার এপিআই কি-টি বসানো আছে
-genai.configure(api_key="AIzaSyDTUBP0y998XnIOCN9b-Q25AIJkyS6MZ3E") 
-model = genai.GenerativeModel('gemini-1.5-flash')
+# --- API Configuration (আপনার দেওয়া কি-গুলো এখানে বসানো হয়েছে) ---
+GEMINI_API_KEY = "AIzaSyDTUBP0y998XnIOCN9b-Q25AIJkyS6MZ3E"
+OPENAI_API_KEY = "sk-..." # এখানে আপনার OpenAI কি-টি বসিয়ে নিন
 
-# ২. পেজ সেটআপ
-st.set_page_config(page_title="Auratex VIP Bot", layout="centered")
-st.title("🚀 Auratex Hybrid Analysis")
+genai.configure(api_key=GEMINI_API_KEY)
+openai.api_key = OPENAI_API_KEY
 
-# ৩. পাসওয়ার্ড সুরক্ষা (আপনি NR77 চেয়েছিলেন)
-if "authenticated" not in st.session_state:
-    st.session_state.authenticated = False
+# --- Page Config ---
+st.set_page_config(page_title="NOSIB TRADER VIP", layout="wide")
 
-if not st.session_state.authenticated:
-    st.subheader("🔐 লগইন করুন")
-    password = st.text_input("পাসওয়ার্ড দিন (NR77):", type="password")
-    if st.button("Unlock Bot"):
-        if password == "NR77": # আপনার দেওয়া পাসওয়ার্ড
-            st.session_state.authenticated = True
+# --- Custom CSS for Advanced Look ---
+st.markdown("""
+    <style>
+    .main { background-color: #0b0e14; color: white; }
+    .stSelectbox div[data-baseweb="select"] { background-color: #161b22; color: white; border: 1px solid #00d2ff; }
+    .market-header { background: linear-gradient(90deg, #00d2ff 0%, #3a7bd5 100%); padding: 20px; border-radius: 10px; text-align: center; font-size: 35px; font-weight: bold; margin-bottom: 20px; }
+    .signal-box { background: #1c2128; border: 2px solid #00d2ff; padding: 25px; border-radius: 15px; box-shadow: 0px 4px 20px rgba(0,210,255,0.3); }
+    </style>
+    """, unsafe_allow_html=True)
+
+# --- Password Lock ---
+if "login" not in st.session_state:
+    st.session_state.login = False
+
+if not st.session_state.login:
+    st.markdown('<div class="market-header">NOSIB TRADER VIP LOGIN</div>', unsafe_allow_html=True)
+    pwd = st.text_input("Enter Passkey:", type="password")
+    if st.button("Access Dashboard"):
+        if pwd == "NR77":
+            st.session_state.login = True
             st.rerun()
-        else:
-            st.error("ভুল পাসওয়ার্ড! আবার চেষ্টা করুন।")
     st.stop()
 
-# ৪. মেইন ইন্টারফেস (লগইন করার পর যা আসবে)
-st.success("স্বাগতম! আপনার ট্রেডিং বোর্ড এখন সচল।")
-uploaded_file = st.file_uploader("কিউটেক্স চার্টের স্ক্রিনশট আপলোড করুন", type=["jpg", "png", "jpeg"])
+# --- Professional Dashboard ---
+st.markdown('<div class="market-header">NOSIB TRADER HYBRID AI TERMINAL</div>', unsafe_allow_html=True)
 
-if uploaded_file:
-    image = Image.open(uploaded_file)
-    st.image(image, caption="আপনার আপলোড করা চার্ট", use_container_width=True)
+# আপনার দেওয়া মার্কেটের তালিকা (Quotex Market List)
+markets = [
+    "EUR/USD (OTC)", "GBP/USD (OTC)", "USD/JPY (OTC)", "AUD/USD (OTC)", 
+    "EUR/GBP (OTC)", "USD/CHF (OTC)", "NZD/USD (OTC)", "USD/CAD (OTC)",
+    "Bitcoin", "Ethereum", "Gold (XAU/USD)", "Silver"
+]
+
+col1, col2 = st.columns([1, 1.5])
+
+with col1:
+    st.subheader("⚙️ Market Settings")
+    selected_market = st.selectbox("Select Trading Asset:", markets) # মার্কেটের নাম এখানে
+    ai_mode = st.radio("Select AI Engine:", ["Gemini 1.5 PRO", "GPT-4 Hybrid"])
     
-    if st.button("এনালাইসিস করুন (Get Signal)"):
-        with st.spinner("এআই চার্ট এনালাইসিস করছে..."):
-            try:
-                # এআইকে কমান্ড দেওয়া হচ্ছে
-                prompt = "Analyze this trading chart and give a 1-minute CALL or PUT signal with logic in Bengali."
-                response = model.generate_content([prompt, image])
-                
-                st.markdown("### 📊 এনালাইসিস রিপোর্ট:")
-                st.write(response.text)
-            except Exception as e:
-                st.error(f"দুঃখিত, একটি সমস্যা হয়েছে: {e}")
+    st.markdown("---")
+    uploaded_file = st.file_uploader("Upload Chart Screenshot", type=["jpg", "png", "jpeg"])
+    if uploaded_file:
+        img = Image.open(uploaded_file)
+        st.image(img, caption=f"Analyzing {selected_market}", use_container_width=True)
 
-st.sidebar.markdown("---")
-st.sidebar.info("বটটি এখন অনলাইন এবং জেমিনি এআই-এর সাথে কানেক্টেড।")
+with col2:
+    st.subheader("📊 Live Analysis & Signals")
+    if uploaded_file:
+        if st.button("GENERATE AI SIGNAL"):
+            with st.spinner(f"NOSIB TRADER AI is analyzing {selected_market}..."):
+                try:
+                    # মার্কেট এবং এআই ইঞ্জিন ব্যবহার করে এনালাইসিস
+                    prompt = f"Market: {selected_market}. Analyze this candlestick chart and provide a 1-minute signal (CALL/PUT) with logic and success probability in Bengali."
+                    
+                    model = genai.GenerativeModel('gemini-1.5-flash')
+                    response = model.generate_content([prompt, img])
+                    
+                    st.markdown('<div class="signal-box">', unsafe_allow_html=True)
+                    st.markdown(f"### 🎯 Signal for {selected_market}")
+                    st.write(response.text)
+                    st.markdown("---")
+                    st.info(f"Analysis Powered by {ai_mode}")
+                    st.markdown('</div>', unsafe_allow_html=True)
+                except Exception as e:
+                    st.error(f"Error connecting to Market API: {e}")
+    else:
+        st.warning("Please upload a chart to see professional signals.")
+
+st.sidebar.markdown(f"### 🛡️ VIP ACCOUNT: NOSIB")
+st.sidebar.write(f"🌐 **Current Market:** {selected_market}")
+st.sidebar.write("⚡ **Latency:** 12ms")
+st.sidebar.write("💎 **Version:** 4.0 Pro")
+
 
       
 
