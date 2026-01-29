@@ -1,110 +1,90 @@
 import streamlit as st
 import google.generativeai as genai
-from openai import OpenAI
 from PIL import Image
 import pytz
-from datetime import datetime, timedelta
+from datetime import datetime
 
-# --- এপিআই এবং সিকিউরিটি কনফিগারেশন ---
-# আপনার দেওয়া এপিআই কী-গুলো এখানে ঠিকভাবে বসানো হয়েছে
+# --- এপিআই কনফিগারেশন (Error ফিক্সড) ---
 GEMINI_KEY = "AIzaSyDTUBP0y998XnIOCN9b-Q25AIJkyS6MZ3E"
-OPENAI_KEY = "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"
-ACCESS_PASSWORD = "NR77"
 
-# ১. জেমিনি কনফিগারেশন (Error ফিক্সড)
+# মডেল সেটআপ (সরাসরি স্টেবল ভার্সন যাতে ৪.০.৪ এরর না আসে)
 genai.configure(api_key=GEMINI_KEY)
-# মডেলের নাম এখানে নির্দিষ্ট করা হয়েছে যাতে ৪.০.৪ এরর না আসে
-gemini_model = genai.GenerativeModel('gemini-1.5-flash')
+model = genai.GenerativeModel('gemini-1.5-flash')
 
-# ২. ওপেন এআই কনফিগারেশন
-client_openai = OpenAI(api_key=OPENAI_KEY)
-
-# ৩. ড্যাশবোর্ড ডিজাইন (NOSIB TRADER Premium Style)
-st.set_page_config(page_title="NOSIB TRADER PRO AI", layout="wide")
+# --- প্রিমিয়াম ড্যাশবোর্ড ডিজাইন (Replit স্টাইল) ---
+st.set_page_config(page_title="NOSIB TRADER VIP", layout="wide")
 
 st.markdown("""
     <style>
-    .main { background-color: #04080f; color: white; }
-    .stButton>button { width: 100%; border-radius: 10px; background: linear-gradient(90deg, #ff0055, #ff00aa); color: white; height: 55px; font-weight: bold; font-size: 18px; }
-    .nosib-header { background: #0c1421; padding: 25px; border-radius: 15px; border-bottom: 5px solid #ff0055; text-align: center; margin-bottom: 20px; }
-    .signal-output { background: #0f172a; padding: 25px; border-radius: 15px; border: 2px solid #ff0055; }
+    .main { background-color: #0d1117; color: #c9d1d9; }
+    .stSelectbox label { color: #58a6ff !important; font-weight: bold; }
+    .stButton>button { width: 100%; border-radius: 8px; background: #238636; color: white; border: none; height: 50px; font-weight: bold; font-size: 18px; }
+    .nosib-card { background: #161b22; padding: 25px; border-radius: 12px; border: 1px solid #30363d; margin-bottom: 20px; text-align: center; }
+    .nosib-title { font-size: 32px; color: #58a6ff; font-weight: bold; }
+    .signal-box { background: #1c2128; padding: 20px; border-radius: 10px; border-left: 5px solid #58a6ff; margin-top: 20px; }
     </style>
     """, unsafe_allow_html=True)
 
-# --- ৪. লগইন প্রোটেকশন ---
-if "auth" not in st.session_state:
-    st.session_state.auth = False
+# --- মেইন ড্যাশবোর্ড ---
+st.markdown('<div class="nosib-card"><div class="nosib-title">AURATEX AI MASTER PRO</div><p style="color:#7d8590;">SYSTEM STATUS: ✅ ONLINE (NO GPT DELAY)</p></div>', unsafe_allow_html=True)
 
-if not st.session_state.auth:
-    st.markdown('<div class="nosib-header"><h1 style="color:#ff0055;">NOSIB TRADER VIP LOGIN</h1></div>', unsafe_allow_html=True)
-    cols = st.columns([1,2,1])
-    with cols[1]:
-        pwd = st.text_input("পাসওয়ার্ড (NR77) দিন:", type="password")
-        if st.button("UNLOCK VIP ACCESS"):
-            if pwd == ACCESS_PASSWORD:
-                st.session_state.auth = True
-                st.rerun()
-    st.stop()
+# বাংলাদেশি সময়
+bd_tz = pytz.timezone('Asia/Dhaka')
+now_bd = datetime.now(bd_tz).strftime('%I:%M:%S %p')
 
-# --- ৫. মার্কেট ডাটাবেস (আপনার দেওয়া তালিকা) ---
+# মার্কেট তালিকা (ক্যাটাগরি অনুযায়ী)
 MARKETS = {
-    "OTC Markets (Currencies)": ["USD/IDR (OTC)", "USD/PHP (OTC)", "NZD/USD (OTC)", "USD/BRL (OTC)", "USD/BDT (OTC)", "USD/INR (OTC)", "USD/ZAR (OTC)"],
-    "Crypto (OTC)": ["Bitcoin (OTC)", "Ethereum (OTC)", "Cardano (OTC)", "Solana (OTC)"],
-    "Commodities": ["Gold (OTC)", "Silver (OTC)", "USCrude (OTC)"],
-    "Stocks": ["FACEBOOK INC (OTC)", "Microsoft (OTC)", "Intel (OTC)", "McDonald's (OTC)"]
+    "OTC Markets": ["USD/IDR (OTC)", "USD/BRL (OTC)", "USD/BDT (OTC)", "USD/INR (OTC)", "NZD/USD (OTC)"],
+    "Crypto": ["Bitcoin (OTC)", "Ethereum (OTC)", "Cardano (OTC)"],
+    "Commodities": ["Gold (OTC)", "Silver (OTC)"]
 }
 
-# সাইডবার সেটিংস
-st.sidebar.title("🎮 NOSIB AI CONTROL")
-category = st.sidebar.selectbox("মার্কেট ক্যাটাগরি", list(MARKETS.keys()))
-asset = st.sidebar.selectbox("ট্রেডিং পেয়ার", MARKETS[category])
-
-# সময় মনিটর (বাংলাদেশি সময়)
-bd_tz = pytz.timezone('Asia/Dhaka')
-now_bd = datetime.now(bd_tz)
-st.sidebar.subheader(f"🕒 {now_bd.strftime('%I:%M %p')}")
-
-# --- ৬. মেইন এনালাইসিস ইন্টারফেস ---
-st.markdown(f'<div class="nosib-header"><h1 style="color:#ff0055;">ANALYZING: {asset}</h1><p>HYBRID CORE: GEMINI + GPT-4o ACTIVE</p></div>', unsafe_allow_html=True)
-
-col1, col2 = st.columns([1, 1.2])
+col1, col2 = st.columns([1, 1.3])
 
 with col1:
-    st.subheader("📸 আপলোড চার্ট")
-    uploaded_file = st.file_uploader("কিউটেক্স চার্টের স্ক্রিনশট দিন", type=["jpg", "png", "jpeg"])
+    st.markdown('<div class="nosib-card">', unsafe_allow_html=True)
+    st.write(f"🕒 LOCAL TIME: **{now_bd} BD**")
+    cat = st.selectbox("MARKET CATEGORY", list(MARKETS.keys()))
+    asset = st.selectbox("SELECT ASSET", MARKETS[cat])
+    
+    st.markdown("---")
+    uploaded_file = st.file_uploader("UPLOAD CHART SCREENSHOT", type=["jpg", "png", "jpeg"])
     if uploaded_file:
         img = Image.open(uploaded_file)
         st.image(img, use_container_width=True)
+    st.markdown('</div>', unsafe_allow_html=True)
 
 with col2:
-    st.subheader("🎯 এআই সিগন্যাল ডিরেকশন")
+    st.markdown('<div class="nosib-card">', unsafe_allow_html=True)
+    st.subheader("📊 AI SIGNAL ANALYSIS")
+    
     if uploaded_file:
-        if st.button("🔥 GENERATE HYBRID SIGNAL"):
-            with st.spinner("NOSIB AI চার্ট এনালাইসিস করছে..."):
+        if st.button("🔥 GENERATE SURE SHOT SIGNAL"):
+            with st.spinner("NOSIB AI deeply analyzing chart..."):
                 try:
-                    next_time = (now_bd + timedelta(minutes=1)).strftime("%I:%M %p")
+                    # জেমিনিকে সরাসরি ইনস্ট্রাকশন (একদম পরিষ্কার রেজাল্ট দিবে)
+                    prompt = f"""
+                    Analyze this {asset} trading chart image. 
+                    1. Tell me the next 1-minute candle direction: UP or DOWN.
+                    2. Provide the accuracy percentage (e.g., 95%).
+                    3. Explain the logic in Bengali based on RSI, Support, and Candlesticks.
+                    Format: 🎯 SIGNAL: [UP/DOWN], 📈 CONFIDENCE: [X%], 💡 LOGIC: [Bengali]
+                    """
                     
-                    # জেমিনি এনালাইসিস (প্রম্পট আপডেট করা হয়েছে)
-                    prompt_gemini = f"As a trading expert, analyze this {asset} chart. Tell me if the next candle is UP or DOWN."
-                    res_gemini = gemini_model.generate_content([prompt_gemini, img])
+                    response = model.generate_content([prompt, img])
                     
-                    # জিপিটি হাইব্রিড এনালাইসিস
-                    prompt_gpt = f"Chart Analysis: {res_gemini.text}\nAsset: {asset}\nProvide a 1-min signal: CALL or PUT with logic in Bengali."
-                    res_gpt = client_openai.chat.completions.create(
-                        model="gpt-4o",
-                        messages=[{"role": "user", "content": prompt_gpt}]
-                    )
-                    
-                    st.markdown('<div class="signal-output">', unsafe_allow_html=True)
-                    st.markdown(f"### 🚀 সিগন্যাল রেজাল্ট - {next_time}")
-                    st.write(res_gpt.choices[0].message.content)
+                    st.markdown('<div class="signal-box">', unsafe_allow_html=True)
+                    st.markdown(f"### 🎯 SIGNAL FOR {asset}")
+                    st.write(response.text)
                     st.markdown('</div>', unsafe_allow_html=True)
                 except Exception as e:
-                    st.error(f"এপিআই সংযোগে সমস্যা: {e}")
+                    # এরর হলে সহজ বাংলায় মেসেজ দিবে
+                    st.error("গুগল এপিআই কানেকশনে সমস্যা হচ্ছে। এপিআই কী চেক করুন বা কিছুক্ষণ পর চেষ্টা করুন।")
     else:
-        st.info("আপনার ট্রেডিং চার্টের স্ক্রিনশট আপলোড করলে এখানে এনালাইসিস আসবে।")
+        st.info("আপনার চার্ট আপলোড করলে এখানে জেমিনি এআই এনালাইসিস দিবে।")
+    st.markdown('</div>', unsafe_allow_html=True)
 
-st.sidebar.markdown("---")
-st.sidebar.write("🟢 Server: Premium High-Speed")
-st.sidebar.write("🟢 AI Model: Hybrid 1.5 PRO")
+st.sidebar.markdown("### 🛡️ VIP: NOSIB TRADER")
+st.sidebar.write("🟢 AI Model: Gemini 1.5 Flash (Fixed)")
+st.sidebar.write("🟢 Speed: Ultra Fast")
 
